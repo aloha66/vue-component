@@ -101,6 +101,9 @@ const loadMore = () => {
         </div>
       </div>
     </div>
+    <template slot="merge-col">
+      <!-- 合并内容...     -->
+    </template>
     <button style="position: fixed; bottom: 0" @click="loadMore">
       加载更多
     </button>

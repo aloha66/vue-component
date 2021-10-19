@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watchEffect, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import Waterfall from './components/waterfall/index.vue'
+import ScrollView from './components/scroll-view/indev.vue'
 import { list2, sku as list } from './components/waterfall/mogu'
 
 const data = ref<object[]>([])
@@ -9,13 +10,44 @@ setTimeout(() => {
   data.value = list2
 }, 200)
 
+let ss = ref(30)
+
 const loadMore = () => {
   data.value = [...data.value, ...list]
+}
+
+const finished = ref(false)
+const loading = ref(false)
+const loadMore2 = () => {
+  console.log('触发了pullup')
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+  }, 2000)
+  ss.value += 30
+
+  if (ss.value > 250) {
+    finished.value = true
+  }
 }
 </script>
 
 <template>
-  <Waterfall :data="data" @load-more="loadMore">
+  <ScrollView
+    ref="scroll"
+    :loading="loading"
+    :finished="finished"
+    @pull-up="loadMore2"
+  >
+    <template v-for="n in ss">
+      <div class="li">{{ n }}</div>
+    </template>
+
+    <!-- <template #pullup="{ pullupClick }">
+      <div @click="pullupClick">ddd</div>
+    </template> -->
+  </ScrollView>
+  <!-- <Waterfall :data="data" @load-more="loadMore">
     <template v-slot:default="inner">
       <div>
         <div>
@@ -23,11 +55,10 @@ const loadMore = () => {
         </div>
 
         <div class="title">{{ inner.title }}</div>
-        <!-- <div class="title">安娜款 经典百搭不挑人王炸风衣外套S18-7</div> -->
         <div>{{ inner.price }}</div>
       </div>
     </template>
-  </Waterfall>
+  </Waterfall> -->
 </template>
 
 <style>
@@ -52,5 +83,13 @@ div {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   word-break: break-all;
+}
+
+.li {
+  padding: 10px 0;
+  text-align: center;
+  font-size: 32px;
+  font-family: DINAlternate-Bold;
+  background-color: #f0f0f0;
 }
 </style>

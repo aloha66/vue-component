@@ -1,4 +1,19 @@
-import { ref, onBeforeUpdate, onUpdated, onUnmounted, Ref } from 'vue'
+import {
+  ref,
+  onBeforeUpdate,
+  unref,
+  onMounted,
+  onUnmounted,
+  isRef,
+  watch,
+  Ref,
+} from 'vue'
+import { inBrowser } from '../utils'
+
+export * from './useScroll'
+export * from './useTouch'
+
+type TargetRef = EventTarget | Ref<EventTarget | undefined>
 
 export function useMediaQuery(query: string) {
   const mediaQuery = window.matchMedia(query)
@@ -31,4 +46,50 @@ export const useRefEl = () => {
   })
 
   return [refList, setRefList] as const
+}
+
+export type UseEventListenerOptions = {
+  target?: TargetRef
+  capture?: boolean
+  passive?: boolean
+}
+
+export function useEventListener(
+  type: string,
+  listener: EventListener,
+  options: UseEventListenerOptions = {}
+) {
+  if (!inBrowser) {
+    return
+  }
+  const { target = window, passive = false, capture = false } = options
+
+  let attached: boolean
+
+  const add = (target?: TargetRef) => {
+    const element = unref(target)
+
+    if (element && !attached) {
+      element.addEventListener(type, listener, { capture, passive })
+      attached = true
+    }
+  }
+
+  const remove = (target?: TargetRef) => {
+    const element = unref(target)
+    if (element && attached) {
+      element.removeEventListener(type, listener, capture)
+      attached = false
+    }
+  }
+
+  onUnmounted(() => remove(target))
+  onMounted(() => add(target))
+
+  if (isRef(target)) {
+    watch(target, (val, old) => {
+      remove(old)
+      add(val)
+    })
+  }
 }
