@@ -1,4 +1,11 @@
-import { computed, useSlots, reactive, ref, watch } from 'vue'
+import {
+  computed,
+  useSlots,
+  reactive,
+  watchEffect,
+  watch,
+  defineEmits,
+} from 'vue'
 import { getScrollTop } from '../../utils'
 import { useTouch } from '../../hooks'
 import type { Props, PullDownStatus } from './type'
@@ -6,19 +13,23 @@ import type { Props, PullDownStatus } from './type'
 export const useLayout = (props: Props) => {
   const slot = useSlots()
 
-  console.log('slot', slot)
-
   const pullupText = computed(() => {
-    if (props.finished) return '到底了'
-    return props.loading ? '加载中' : '加载更多'
+    if (props?.request?.finished) return '到底了'
+    return props?.request?.loading ? '加载中' : '加载更多'
   })
+
+  const pullDownText = computed(() => {})
 
   return {
     pullupText,
   }
 }
 
-export const useBounce = (props: Props) => {
+interface UseBounce extends Props {
+  pullDownEmit: () => void
+}
+
+export const useBounce = (props: UseBounce) => {
   const state = reactive({
     distance: 0,
     duration: 0,
@@ -29,11 +40,12 @@ export const useBounce = (props: Props) => {
   const isTouchable = () =>
     state.status !== 'loading' && state.status !== 'success' && props.bounce
 
-  const isPullDownRefresh = props.pullDownRefresh
-  const isPullUpLoad = props.pullUpLoad
+  // const pullDownRefresh = props.pullDownRefresh
+  // const pullUpLoad = props.pullUpLoad
+
+  const pullDistance = 50 // 触发上下拉刷新的距离
 
   const ease = (distance: number) => {
-    const pullDistance = 50 // 触发下拉刷新的距离
     if (distance > pullDistance) {
       // 当前距离小于预设两倍距离
       if (distance < pullDistance * 2) {
@@ -49,7 +61,6 @@ export const useBounce = (props: Props) => {
   }
 
   const setStatus = (distance: number, isLoading?: boolean) => {
-    const pullDistance = 50
     state.distance = distance //缓冲过的距离
 
     if (isLoading) {
@@ -62,8 +73,8 @@ export const useBounce = (props: Props) => {
       state.status = 'loosing'
     }
   }
+
   let reachTop: boolean
-  let reachBottom: boolean
   const checkPosition = (event: TouchEvent) => {
     reachTop = getScrollTop(props.target) === 0
 
@@ -97,25 +108,23 @@ export const useBounce = (props: Props) => {
     }
   }
 
-  const loading = ref(false)
   const onTouchEnd = () => {
-    // console.log('reachTop', reachTop, touch.deltaY.value, isTouchable())
     if (reachTop && touch.deltaY.value && isTouchable()) {
       state.duration = 300
 
       if (state.status === 'loosing') {
-        setStatus(50, true) // 修改状态为loading
-        loading.value = true
+        setStatus(pullDistance, true) // 修改状态为loading
+        props.pullDownEmit()
       } else {
         setStatus(0)
       }
     }
   }
-
+  const loading = computed(() => props?.request?.loading)
   watch(loading, val => {
     state.duration = 300
     if (val) {
-      setStatus(50, true)
+      setStatus(pullDistance, true)
     } else {
       setStatus(0, false)
     }

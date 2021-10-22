@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, watchEffect, computed } from 'vue'
 import { useScroll, usePullUp } from '../../hooks'
 import { useLayout, useBounce } from './hooks'
 // import { throttle } from '../../utils'
@@ -9,8 +9,6 @@ import throttle from 'lodash.throttle'
 interface Props {
   scrollX?: boolean
   scrollY?: boolean
-  loading: boolean
-  finished: boolean
   bounce: boolean
   target: any
   request?: {
@@ -31,49 +29,67 @@ const scrollRef = ref<HTMLDivElement>()
 
 const props = withDefaults(defineProps<Props>(), {
   scrollY: true,
-  threshold: 0,
   target: window,
   bounce: true,
 })
 
-const pullDownRefresh = computed(() => {
-  const flag = props.pullDownRefresh
-  if (!flag) return false
-  if (flag === true) return { threshold: 90, stop: 40 }
-  return flag
+// const pullDownRefresh = computed(() => {
+//   const flag = props.pullDownRefresh
+//   if (!flag) return false
+//   if (flag === true) return { threshold: 90, stop: 40 }
+//   return flag
+// })
+
+// const pullUpLoad = computed(() => {
+//   const flag = props.pullUpLoad
+//   if (!flag) return false
+//   if (flag === true) return { threshold: 0 }
+//   return flag
+// })
+
+// const { pullupText, pullDownText } = useLayout(props)
+const pullDownText = ref('')
+const pullupText = ref('加载中')
+
+const pullFlag = ref('down')
+watchEffect(() => {
+  if (pullFlag.value === 'down') {
+    pullDownText.value = props?.request?.loading ? '加载中' : '加载完成'
+  } else {
+    pullupText.value = props?.request?.loading ? '加载中' : '加载更多'
+  }
 })
 
-const pullUpLoad = computed(() => {
-  const flag = props.pullUpLoad
-  if (!flag) return false
-  if (flag === true) return { threshold: 0 }
-  return flag
-})
+const emit = defineEmits<{ (e: 'pull-up'): void; (e: 'pull-down'): void }>()
 
-const { pullupText } = useLayout(props)
-
+const pullDownEmit = () => {
+  pullFlag.value = 'down'
+  emit('pull-down')
+}
 const { onTouchEnd, onTouchMove, onTouchStart, trackStyle } = useBounce({
   ...props,
-  pullDownRefresh: pullDownRefresh.value,
+  // pullDownRefresh: pullDownRefresh.value,
+  pullDownEmit,
 })
-
-const emit = defineEmits<{ (e: 'pull-up'): void }>()
 
 // useScroll(e => {})
 
 const handlePullupClick = () => {
-  if (props.finished) return
-  if (!props.loading) {
+  if (props?.request?.finished) return
+  if (!props?.request?.loading) {
+    pullFlag.value = 'pull-up'
     emit('pull-up')
   }
 }
 usePullUp(
   throttle(() => {
-    if (!props.loading && !props.finished) {
+    if (!props?.request?.loading && !props?.request?.finished) {
+      pullFlag.value = 'pull-up'
       emit('pull-up')
     }
   }, 50),
-  { ...props, pullUpLoad: pullUpLoad.value }
+  props
+  // { ...props, pullUpLoad: pullUpLoad.value }
 )
 </script>
 
@@ -87,13 +103,18 @@ usePullUp(
       @touchcancel="onTouchEnd"
       :style="trackStyle"
     >
+      <slot name="pulldown">
+        <div @click="handlePullupClick" class="pullupText">
+          {{ pullDownText }}
+        </div>
+      </slot>
       <slot />
 
       <slot name="pullup" :pullupClick="handlePullupClick">
         <div @click="handlePullupClick" class="pullupText">
           {{ pullupText }}
-        </div></slot
-      >
+        </div>
+      </slot>
     </div>
   </div>
 </template>

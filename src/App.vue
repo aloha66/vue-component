@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import Waterfall from './components/waterfall/index.vue'
 import ScrollView from './components/scroll-view/indev.vue'
 import { list2, sku as list } from './components/waterfall/mogu'
@@ -16,28 +16,37 @@ const loadMore = () => {
   data.value = [...data.value, ...list]
 }
 
-const finished = ref(false)
-const loading = ref(false)
+const state = reactive({
+  finished: false,
+  loading: false,
+})
 const loadMore2 = () => {
   console.log('触发了pullup')
-  loading.value = true
+  state.loading = true
   setTimeout(() => {
-    loading.value = false
+    state.loading = false
   }, 2000)
   ss.value += 30
 
   if (ss.value > 250) {
-    finished.value = true
+    state.finished = true
   }
+}
+
+const refresh = () => {
+  state.loading = true
+  setTimeout(() => {
+    state.loading = false
+  }, 2000)
 }
 </script>
 
 <template>
   <ScrollView
     ref="scroll"
-    :loading="loading"
-    :finished="finished"
+    :request="state"
     @pull-up="loadMore2"
+    @pull-down="refresh"
   >
     <template v-for="n in ss">
       <div class="li">{{ n }}</div>
