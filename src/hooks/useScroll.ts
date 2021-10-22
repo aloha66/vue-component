@@ -14,6 +14,7 @@ interface Options {
   scrollX?: boolean
   scrollY?: boolean
   threshold?: number
+  [key: string]: any
 }
 
 export const useScroll = (cb: scrollCB, options?: Options) => {
