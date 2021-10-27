@@ -1,35 +1,14 @@
-import {
-  computed,
-  useSlots,
-  reactive,
-  watchEffect,
-  watch,
-  defineEmits,
-} from 'vue'
+import { computed, useSlots, reactive, watch, ref } from 'vue'
 import { getScrollTop } from '../../utils'
 import { useTouch } from '../../hooks'
 import type { Props, PullDownStatus } from './type'
-
-export const useLayout = (props: Props) => {
-  const slot = useSlots()
-
-  const pullupText = computed(() => {
-    if (props?.request?.finished) return '到底了'
-    return props?.request?.loading ? '加载中' : '加载更多'
-  })
-
-  const pullDownText = computed(() => {})
-
-  return {
-    pullupText,
-  }
-}
 
 interface UseBounce extends Props {
   pullDownEmit: () => void
 }
 
 export const useBounce = (props: UseBounce) => {
+  const isPulling = ref(false)
   const state = reactive({
     distance: 0,
     duration: 0,
@@ -39,9 +18,6 @@ export const useBounce = (props: UseBounce) => {
 
   const isTouchable = () =>
     state.status !== 'loading' && state.status !== 'success' && props.bounce
-
-  // const pullDownRefresh = props.pullDownRefresh
-  // const pullUpLoad = props.pullUpLoad
 
   const pullDistance = 50 // 触发上下拉刷新的距离
 
@@ -86,6 +62,7 @@ export const useBounce = (props: UseBounce) => {
   const onTouchStart = (event: TouchEvent) => {
     if (isTouchable()) {
       checkPosition(event)
+      isPulling.value = true
     }
   }
 
@@ -120,25 +97,62 @@ export const useBounce = (props: UseBounce) => {
       }
     }
   }
+
+  const showSuccessTip = () => {
+    state.status = 'success'
+
+    setTimeout(() => {
+      setStatus(0)
+      isPulling.value = false
+    }, 300)
+  }
   const loading = computed(() => props?.request?.loading)
-  watch(loading, val => {
+  watch(loading, (val, old) => {
     state.duration = 300
     if (val) {
       setStatus(pullDistance, true)
+    } else if (val === false && old === true) {
+      showSuccessTip()
     } else {
       setStatus(0, false)
     }
   })
 
-  const trackStyle = computed(() => ({
-    transitionDuration: `${state.duration}ms`,
-    transform: state.distance ? `translate3d(0,${state.distance}px, 0)` : '',
-  }))
+  const slots = useSlots()
+
+  const pullDownText = computed(() => {
+    const status = {
+      success: '刷新成功',
+      pulling: '下拉即可刷新',
+      loosing: '释放即可刷新',
+      loading: '加载中',
+      normal: '',
+    }
+
+    return status[state.status]
+  })
+
+  const PullDownTextEle = () => {
+    if (!isPulling.value) return
+    if (slots[state.status]) {
+      return slots[state.status]?.()
+    }
+    return pullDownText.value
+  }
+
+  const trackStyle = computed(() => {
+    if (!isPulling.value) return
+    return {
+      transitionDuration: `${state.duration}ms`,
+      transform: state.distance ? `translate3d(0,${state.distance}px, 0)` : '',
+    }
+  })
 
   return {
     onTouchEnd,
     onTouchMove,
     onTouchStart,
     trackStyle,
+    PullDownTextEle,
   }
 }

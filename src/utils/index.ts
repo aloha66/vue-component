@@ -50,28 +50,15 @@ export function isReachBottom(el: ScrollElement) {
 
 export function throttle(invoke: Function, ms: MaybeRef<number>) {
   let lastExec = 0
-  let timer: ReturnType<typeof setTimeout> | undefined
-  console.log('invoke', invoke)
-
-  const clear = () => {
-    if (timer) {
-      clearTimeout(timer)
-      timer = undefined
-    }
-  }
-
   const duration = unref(ms)
-  const elapsed = Date.now() - lastExec
 
-  clear()
+  return function (...args: unknown[]) {
+    const elapsed = Date.now() - lastExec
 
-  if (duration < 0) {
-    lastExec = Date.now()
-    return invoke
-  }
-
-  if (elapsed > duration) {
-    lastExec = Date.now()
-    return invoke
+    if (elapsed > duration) {
+      lastExec = Date.now()
+      // @ts-expect-error
+      invoke.apply(this, args)
+    }
   }
 }

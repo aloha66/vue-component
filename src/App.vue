@@ -20,7 +20,7 @@ const state = reactive({
   finished: false,
   loading: false,
 })
-const loadMore2 = () => {
+const loadMoreByScroll = () => {
   console.log('触发了pullup')
   state.loading = true
   setTimeout(() => {
@@ -36,6 +36,7 @@ const loadMore2 = () => {
 const refresh = () => {
   state.loading = true
   setTimeout(() => {
+    ss.value = 30
     state.loading = false
   }, 2000)
 }
@@ -45,16 +46,16 @@ const refresh = () => {
   <ScrollView
     ref="scroll"
     :request="state"
-    @pull-up="loadMore2"
+    @pull-up="loadMoreByScroll"
     @pull-down="refresh"
+    :bounce="false"
   >
+    <template #loosing>
+      <div style="color: skyblue">突突突</div>
+    </template>
     <template v-for="n in ss">
       <div class="li">{{ n }}</div>
     </template>
-
-    <!-- <template #pullup="{ pullupClick }">
-      <div @click="pullupClick">ddd</div>
-    </template> -->
   </ScrollView>
   <!-- <Waterfall :data="data" @load-more="loadMore">
     <template v-slot:default="inner">
