@@ -1,54 +1,66 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import Waterfall from './components/waterfall/index.vue'
-import ScrollView from './components/scroll-view/indev.vue'
+import ScrollView from './components/scroll-view'
 import { list2, sku as list } from './components/waterfall/mogu'
 
-const data = ref<object[]>([])
-
-setTimeout(() => {
-  data.value = list2
-}, 200)
-
 let ss = ref(30)
-
-const loadMore = () => {
-  data.value = [...data.value, ...list]
-}
 
 const state = reactive({
   finished: false,
   loading: false,
+  list: [],
 })
-const loadMoreByScroll = () => {
-  console.log('触发了pullup')
+
+setTimeout(() => {
+  state.list = list2
+}, 200)
+
+const pulldown = () => {
   state.loading = true
   setTimeout(() => {
-    state.loading = false
-  }, 2000)
-  ss.value += 30
-
-  if (ss.value > 250) {
-    state.finished = true
-  }
-}
-
-const refresh = () => {
-  state.loading = true
-  setTimeout(() => {
-    ss.value = 30
+    state.list = list2
     state.loading = false
   }, 2000)
 }
+
+const loadMoreByWatchfall = () => {
+  state.loading = true
+  setTimeout(() => {
+    state.loading = false
+    // @ts-ignore
+    state.list = [...state.list, ...list]
+  }, 2000)
+}
+
+// const loadMoreByScroll = () => {
+//   console.log('触发了pullup')
+//   state.loading = true
+//   setTimeout(() => {
+//     state.loading = false
+//   }, 2000)
+//   ss.value += 30
+
+//   if (ss.value > 250) {
+//     state.finished = true
+//   }
+// }
+
+// const refresh = () => {
+//   state.loading = true
+//   setTimeout(() => {
+//     ss.value = 30
+//     state.loading = false
+//   }, 2000)
+// }
 </script>
 
 <template>
-  <ScrollView
+  <!-- <ScrollView
     ref="scroll"
     :request="state"
     @pull-up="loadMoreByScroll"
     @pull-down="refresh"
-    :bounce="false"
   >
     <template #loosing>
       <div style="color: skyblue">突突突</div>
@@ -56,8 +68,12 @@ const refresh = () => {
     <template v-for="n in ss">
       <div class="li">{{ n }}</div>
     </template>
-  </ScrollView>
-  <!-- <Waterfall :data="data" @load-more="loadMore">
+  </ScrollView> -->
+  <Waterfall
+    :request="state"
+    @pull-up="loadMoreByWatchfall"
+    @pull-down="pulldown"
+  >
     <template v-slot:default="inner">
       <div>
         <div>
@@ -68,7 +84,7 @@ const refresh = () => {
         <div>{{ inner.price }}</div>
       </div>
     </template>
-  </Waterfall> -->
+  </Waterfall>
 </template>
 
 <style>

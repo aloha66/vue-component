@@ -1,9 +1,9 @@
 import { computed, useSlots, reactive, watch, ref } from 'vue'
 import { getScrollTop } from '../../utils'
 import { useTouch } from '../../hooks'
-import type { Props, PullDownStatus } from './type'
+import type { ScrollViewProps, PullDownStatus } from './type'
 
-interface UseBounce extends Props {
+interface UseBounce extends ScrollViewProps {
   pullDownEmit: () => void
 }
 

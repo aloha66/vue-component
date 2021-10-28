@@ -14,16 +14,18 @@ import {
 } from 'vue'
 import { useRefEl } from '../../hooks'
 import useLayout from './hooks/useLayout'
+import ScrollView, { ScrollViewProps } from '../scroll-view'
 // import type { Props } from './types'
 
-export interface Props {
+export interface WaterfallProps extends ScrollViewProps {
   gap?: number
   width?: number
   colCount?: number
-  data: object[]
+  // https://github.com/vuejs/vue-next/issues/4294 vue的类型bug
+  request: any // 为了触发watcheffect  目前不显式表示无法挂载对应的字段做响应
 }
 
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<WaterfallProps>(), {
   gap: 5,
   // width: 290,
   colCount: 3,
@@ -61,53 +63,62 @@ watch(renderIndex, val => {
 const renderWaterFall = async () => {
   const col = colCount.value
   const minIndex = await getMinhIndex()
+  const dataSource = props.request!.list
+
   if (minIndex === -1) {
     for (let n = 0; n < col; n++) {
-      list.value[n] = [props.data[n]]
+      list.value[n] = [dataSource[n]]
     }
     renderIndex.value = col
   } else {
-    const data = props.data[renderIndex.value]
+    const data = dataSource[renderIndex.value]
     list.value[minIndex].push(data)
 
-    if (renderIndex.value < props.data.length - 1) {
+    if (renderIndex.value < dataSource.length - 1) {
       renderIndex.value++
     }
   }
 }
 
 watchEffect(() => {
-  const len = props.data.length
+  const len = props.request?.list.length
   if (!len) return // 还没渲染
 
   renderWaterFall()
 })
 
-const emit = defineEmits<{
-  (e: 'load-more', payload?: number): void
+const emits = defineEmits<{
+  (e: 'pull-up'): void
+  (e: 'pull-down'): void
 }>()
 
-const loadMore = () => {
-  emit('load-more')
+const pullDown = () => {
+  emits('pull-down')
+}
+
+const pullUp = () => {
+  emits('pull-up')
 }
 </script>
 
 <template>
-  <div class="flex">
-    <div class="column" v-for="(outer, i) in list" :key="i">
-      <div class="test" :ref="setElList">
-        <div class="column-item" v-for="(inner, k) in outer" :key="k">
-          <slot v-bind="inner"></slot>
+  <ScrollView :request="props.request" @pull-up="pullUp" @pull-down="pullDown">
+    <div class="flex">
+      <div class="column" v-for="(outer, i) in list" :key="i">
+        <div class="test" :ref="setElList">
+          <div class="column-item" v-for="(inner, k) in outer" :key="k">
+            <slot v-bind="inner"></slot>
+          </div>
         </div>
       </div>
-    </div>
-    <template slot="merge-col">
-      <!-- 合并内容...     -->
-    </template>
-    <button style="position: fixed; bottom: 0" @click="loadMore">
+      <template slot="merge-col">
+        <!-- 合并内容...     -->
+      </template>
+      <!-- <button style="position: fixed; bottom: 0" @click="loadMore">
       加载更多
-    </button>
-  </div>
+    </button> -->
+    </div>
+  </ScrollView>
 </template>
 <style scoped>
 .flex {

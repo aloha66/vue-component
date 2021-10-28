@@ -18,14 +18,11 @@ export interface Request {
   // 请求对象
   loading: boolean
   finished: boolean
+  list: []
 }
 
-export interface Props extends BaseOption {
-  request?: {
-    // 请求对象
-    loading: boolean
-    finished: boolean
-  }
+export interface ScrollViewProps extends BaseOption {
+  request?: Request
   // 下拉动作
   pullDownRefresh?: PullDownRefresh
   pullUpLoad?: PullUpLoad
